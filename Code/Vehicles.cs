@@ -7993,27 +7993,29 @@ string[] unitNames = new string[]
 {
     "EliteP9000", "OmegaRailgun", "eliteAT9000", "eliteMA9000", "dreadnaught_brrt", "HumanTitanElite", "SpaceMarine",
 	"Terran", "teslatruckgun", "atst", "artilleryatst", "atstsniper",
-    "modernhumvee_Human", "howitzer_Human", "Humvee", "humancavalry", "humancannon",
+    "modernhumvee_Human", "howitzer_Human", "humancavalry", "humancannon",
     "spaceork", "modernhumvee_Ork", "howitzer_Ork", "ogreunit", "orccannon", "armoredwolf",
     "modernhumvee_Dwarf", "howitzer_Dwarf", "dwarfcannon", "golemgem",
     "modernhumvee_Gaia", "howitzer_Gaia", "treant", "elfcannon", "demonscorpion",
-    "demonwyvern", "xenolevitank", "xenoUFO", "P9000", "dreadnaught", "Railgun",
-    "baseMA9000", "Tank_Human", "MissileSystem_Human", "wheeledtank_Human", "AbramTank",
-    "shermanww", "tankie", "genericwwtank", "landship", "bigtankww", "davincitank",
+    "demonwyvern", "xenolevitank", "xenoUFO", "P9000", "dreadnaught", "Railgun", "Tank_Human", "MissileSystem_Human", "wheeledtank_Human", "davincitank",
     "catapulta", "batteringram", "Tank_Ork", "MissileSystem_Ork", "wheeledtank_Ork",
     "orcatapulta", "Tank_Dwarf", "MissileSystem_Dwarf", "wheeledtank_Dwarf", "santaguin",
     "Tank_Gaia", "MissileSystem_Gaia", "wheeledtank_Gaia", "woolyrhino", "demoncroc",
     "demongolem", "demonreaver", "xenorailgun", "xenotripod", "AT9000", "supportatst",
-    "supporttruck_Human", "wwsupporttruck", "humanpaladin", "supporttruck_Ork",
+    "supporttruck_Human", "humanpaladin", "supporttruck_Ork",
     "orcwarlock", "supporttruck_Dwarf", "dwarfdoctor", "supporttruck_Gaia",
     "fairydragon", "HeliELite", "FutureGunship", "TIEfighter", "EliteBomber",
-    "Heli_Human", "Bomber_Human", "FighterJet_Human", "F55FighterJet", "Zeppelin",
-    "EliteZeppelin", "americanbomberww", "biplane", "fighterww", "balloonunit",
+    "Heli_Human", "Bomber_Human", "FighterJet_Human", "F55FighterJet", "balloonunit",
     "Heli_Ork", "Bomber_Ork", "FighterJet_Ork", "Gunship", "Heli_Dwarf", "Bomber_Dwarf",
     "FighterJet_Dwarf", "Heli_Gaia", "Bomber_Gaia", "FighterJet_Gaia", "bigfaerydragon",
-    "Bomber_Demon", "xenoUFObomber", "HumanTitan", "MA9000", "crusaderdreadnaught"
+    "Bomber_Demon", "xenoUFObomber", "HumanTitan", "MA9000"
 };
 
+// Manu-Fix 003: 14 Namen ohne Definition und Grafik in ModernBox 5.01 entfernt (Humvee, baseMA9000, AbramTank,
+// shermanww, tankie, genericwwtank, landship, bigtankww, wwsupporttruck, Zeppelin, EliteZeppelin, americanbomberww,
+// biplane, fighterww) - sie erzeugten nur "Registration skipped"-Warnungen.
+// Manu-Fix 005: "crusaderdreadnaught" hat Grafiken, aber keine Einheitendefinition; sein Spawn-Knopf warf eine
+// NullReferenceException in PowerButton.init (ButtonBuilder.cs:213).
 foreach (string unitName in unitNames)
 {
     UnitTracker.Instance.RegisterUnit(unitName);
@@ -9738,6 +9740,8 @@ public static bool HARDENmissileArtilleryEffect(BaseSimObject pTarget, WorldTile
 
 public static bool NuclearMissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile = null)
 {
+    if (pTarget == null || !Development.NuclearAllowed(pTarget.kingdom)) return false;
+
 	if (!nukesEnabled)
 	{
 	//	ModernBoxLogger.Log("Nukes disabled.");
@@ -9825,6 +9829,8 @@ public static bool NuclearMissileArtilleryEffect(BaseSimObject pTarget, WorldTil
 
 public static bool AntiBossNuke(BaseSimObject pTarget, WorldTile pTile = null)
 {
+    if (pTarget == null || !Development.NuclearAllowed(pTarget.kingdom)) return false;
+
 	if (!nukesEnabled)
 	{
 	//	ModernBoxLogger.Log("Nukes disabled.");

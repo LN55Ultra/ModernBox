@@ -844,148 +844,19 @@ namespace ModernBox {
       if (leader == null || leader.asset == null)
         return false;
 
-      string leaderId = leader.asset.id;
-
-      string[] alliancecivs = {
-        "human",          "plague_doctor", "evil_mage",
-        "civ_white_mage", "civ_cat",       "civ_dog",
-        "civ_chicken",    "civ_sheep",     "civ_acid_gentleman",
-        "bandit"
-      };
-      string[] hardencivs = {
-        "dwarf",         "cold_one",   "snowman",
-        "civ_armadillo", "civ_rhino",  "civ_crab",
-        "civ_penguin",   "civ_turtle", "civ_crystal_golem",
-        "civ_candy_man", "civ_goat"
-      };
-      string[] gaiacivs = { "elf",           "civ_rabbit",  "civ_monkey",
-                            "civ_cow",       "civ_buffalo", "civ_alpaca",
-                            "civ_capybara",  "civ_frog",    "civ_liliar",
-                            "druid",         "fairy",       "civ_garlic_man",
-                            "civ_lemon_man", "unicorn" };
-      string[] hordecivs = { "orc",        "necromancer",  "civ_fox",
-                             "civ_wolf",   "civ_bear",     "civ_hyena",
-                             "civ_rat",    "civ_scorpion", "civ_crocodile",
-                             "civ_snake",  "civ_piranha",  "greg",
-                             "jumpy_skull" };
-
-      string[] civGroups =
-          new string[] { "alliance", "harden", "gaia", "horde" };
-
-      string civGroup = alliancecivs.Contains(leaderId) ? "alliance"
-                        : hardencivs.Contains(leaderId) ? "harden"
-                        : gaiacivs.Contains(leaderId)   ? "gaia"
-                        : hordecivs.Contains(leaderId)  ? "horde"
-                                                        : "alliance";
-
-      Building bonfire = actor.city.getBuildingOfType("type_bonfire");
-      if (bonfire == null || bonfire.asset == null)
-        return false;
-
-      int bonfireLevel = bonfire.asset.upgrade_level;
-      string currentBonfireId = bonfire.asset.id;
-
-      var enabledEras =
-          EraLibrary.All
-              .Where(e => {
-                return e.key switch {
-                  "medieval" => StatManager.Instance.enableMedieval,
-                  "renaissance" => StatManager.Instance.enableRenaissance,
-                  "modern" => StatManager.Instance.enableModern,
-                  "hyperfuture" => StatManager.Instance.enableHyperfuture,
-                  _ => false
-                };
-              })
-              .ToList();
-
-      if (enabledEras.Count == 0)
-        return false;
-
-      var detectedEra = EraLibrary.All.FirstOrDefault(
-          e => e.bonfires.ContainsKey(civGroup) &&
-               e.bonfires[civGroup].Contains(currentBonfireId));
-
-      string overrideEra = StatManager.Instance.eraoverride?.ToLower();
-
-      EraDefinition targetEra = null;
-
-      if (!string.IsNullOrEmpty(overrideEra)) {
-        targetEra = enabledEras.FirstOrDefault(e => e.key == overrideEra);
-
-        if (targetEra == null) {
-
-          int index = Mathf.Clamp(bonfireLevel, 0, enabledEras.Count - 1);
-          targetEra = enabledEras[index];
-        }
-      } else {
-        int index = Mathf.Clamp(bonfireLevel, 0, enabledEras.Count - 1);
-        targetEra = enabledEras[index];
+      string civGroup = Development.Group(actor.city.getActorAsset());
+      string eraKey = Development.Era(actor.city);
+      EraDefinition targetEra = EraLibrary.All.FirstOrDefault(e => e.key == eraKey);
+      if (targetEra == null) return false;
+      if (StatManager.Instance != null) {
+        bool enabled = eraKey == "medieval" ? StatManager.Instance.enableMedieval :
+          eraKey == "renaissance" ? StatManager.Instance.enableRenaissance :
+          eraKey == "modern" ? StatManager.Instance.enableModern : StatManager.Instance.enableHyperfuture;
+        if (!enabled) return false;
+        StatManager.Instance.currentEra = targetEra.name;
+        StatManager.Instance.currentEraDescription = "Forschung je Reich – " + targetEra.description;
       }
-
-      if (targetEra == null) {
-        ModernBoxLogger.Error("era is null");
-        return false;
-      }
-
-      foreach (var civGroupa in civGroups) {
-        SetEraCity(targetEra.key, civGroupa);
-      }
-
-      bool needsFix = detectedEra == null ||
-                      !enabledEras.Contains(detectedEra) ||
-                      detectedEra.key != targetEra.key;
-
-      if (needsFix) {
-
-        foreach (var era in EraLibrary.All) {
-          if (!era.bonfires.ContainsKey(civGroup))
-            continue;
-
-          foreach (var oldId in era.bonfires[civGroup]) {
-            string replacement = targetEra.bonfires[civGroup][0];
-            changeAllBuildings(oldId, replacement);
-          }
-        }
-
-        foreach (var era in EraLibrary.All) {
-          if (!era.cityBuildings.ContainsKey(civGroup) ||
-              !targetEra.cityBuildings.ContainsKey(civGroup))
-            continue;
-
-          var sourceList = era.cityBuildings[civGroup];
-          var targetList = targetEra.cityBuildings[civGroup];
-
-          foreach (string oldId in sourceList) {
-
-            string functionalKeyword = bitch(oldId);
-            if (functionalKeyword == "building") {
-              continue;
-            }
-
-            string replacement = targetList.FirstOrDefault(
-                newId =>
-                    newId.IndexOf(functionalKeyword,
-                                  StringComparison.OrdinalIgnoreCase) >= 0);
-
-            if (string.IsNullOrEmpty(replacement)) {
-              continue;
-            }
-
-            if (!string.IsNullOrEmpty(replacement) && oldId != replacement) {
-              changeAllBuildings(oldId, replacement);
-            }
-          }
-        }
-
-      }
-
-      StatManager.Instance.currentEra = targetEra.name;
-      StatManager.Instance.currentEraDescription = targetEra.description;
-
-      string leaderSpeciesId = leader.subspecies?.data?.species_id;
-      if (string.IsNullOrEmpty(leaderSpeciesId)) {
-        leaderSpeciesId = leader.asset.id;
-      }
+      string leaderSpeciesId = actor.city.getActorAsset().id;
       string role = GetRoleType(UnityEngine.Random.Range(0f, 1f));
 
       Dictionary<string, Dictionary<string, List<string>>> roleMapDict =
@@ -1002,14 +873,15 @@ namespace ModernBox {
       if (roleMapDict == null)
         return false;
 
-      if (!roleMapDict.TryGetValue(leaderSpeciesId, out var roleMap))
+      if (!roleMapDict.TryGetValue(leaderSpeciesId, out var roleMap) &&
+          !roleMapDict.TryGetValue(Development.VehicleSpecies(actor.city.getActorAsset()), out roleMap))
         return false;
 
       if (!roleMap.TryGetValue(role, out var candidates) ||
           candidates.Count == 0)
         return false;
 
-        var filteredCandidates = SuckDick(candidates);
+        var filteredCandidates = SuckDick(candidates).Where(id => Development.AllowsVehicle(actor.city,id)).ToList();
 
         if (filteredCandidates.Count == 0)
             return false;
@@ -1129,23 +1001,8 @@ namespace ModernBox {
       if (!city.hasBuildingType("type_hall"))
         return false;
 
-      int pop = city.getPopulationPeople();
-      int vehicleLimit = 0;
-      if (pop >= 200)
-        vehicleLimit = 25;
-      else if (pop >= 120)
-        vehicleLimit = 20;
-      else if (pop >= 80)
-        vehicleLimit = 15;
-      else if (pop >= 50)
-        vehicleLimit = 10;
-      else if (pop >= 30)
-        vehicleLimit = 8;
-      else if (pop >= 20)
-        vehicleLimit = 5;
-      else
-        return false;
-
+      if (!Development.CanProduceVehicle(city)) return false;
+      int vehicleLimit = Development.VehicleLimit(city);
       int currentVehicles = 0;
       foreach (Actor unit in city.units) {
         if (unit.hasTrait("Unitpotential"))
@@ -1172,6 +1029,7 @@ namespace ModernBox {
       vehicle.makeWait(1f);
       vehicle.setKingdom(caster.kingdom);
       vehicle.setCity(city);
+      Development.PayVehicle(city);
       return true;
     }
 

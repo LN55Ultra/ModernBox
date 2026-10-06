@@ -87,6 +87,7 @@ namespace ModernBox{
         {
             try
             {
+                int firstModernBoxActor = AssetManager.actor_library.list.Count; // Manu-Fix 017: ab hier eigene Einheiten
 	            loadSettings();
 
                 FuckWorldboxia();
@@ -200,6 +201,11 @@ namespace ModernBox{
                 Zombies.create_Zombies();
                 ModernBoxLogger.Log("[MX] Zombies loaded!");
 
+                // Manu-Fix 016/017: Bildausschnitt und Namen der Einheiten (siehe ActorDisplayFixes.cs)
+                AvatarScaleFix.Apply();
+                NameLocaleFix.Apply(firstModernBoxActor);
+                TextFix.ApplyStatic();
+
                 BombEffects.Init();
                 ModernBoxLogger.Log("[MX] Bomb effects initialized!");
 
@@ -233,13 +239,17 @@ namespace ModernBox{
                 ModernBoxLogger.Log("No thanks Morfos.");
 
                 Traits.init();
+                int firstModernBoxItem = AssetManager.items.list.Count; // Manu-Fix 017: ab hier eigene Gegenstaende
                Itemz.init();
 
                WeaponsProjectilesEffects.init();
                WeaponsProjectilesEffects.FixAllWeapons();
+                TextFix.ApplyItems(firstModernBoxItem); // Manu-Fix 017: Namen der Gegenstaende
 
 
+                Development.CaptureBeforeBuildings();
                 Buildings.init();
+                Development.Install(gameObject);
 
 
                 instance = this;

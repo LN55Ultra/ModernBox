@@ -24,6 +24,23 @@ namespace ModernBox
         {
             BuildingOrderandStuff();
         }
+
+        // Manu-Fix 014 (06.10.2026): eigene Grafik unter GameResources/buildings/bonfire_future (ImageGen, Herkunft
+        // project_worldbox/assets/imagegen/2026-10-06_modernbox_fehlgrafik) - der Rueckfall unten greift nur noch ohne sie.
+        // Manu-Fix 011: ModernBox 5.01 liefert keine Grafik unter buildings/bonfire_future. Die vier Zukunfts-Lagerfeuer waren
+        // unsichtbar, und weil sie Rauch haben (smoke = true), warf BuildingSmokeEffect.create beim Bauen bzw. beim
+        // Epochen-Umbau jedes Mal ArgumentOutOfRangeException (gemessen im Worst-Case-Lauf 06.10.2026: 2 468x). Fehlt die
+        // eigene Grafik, wird die des modernen Lagerfeuers genutzt; liefert der Autor die Grafik nach, gilt wieder seine.
+        internal static string ManuGrafikOderErsatz(string pfad, string ersatz)
+        {
+            try
+            {
+                Sprite[] eigene = SpriteTextureLoader.getSpriteList(pfad);
+                if (eigene != null && eigene.Length > 0) return pfad;
+            }
+            catch (Exception) { }
+            return ersatz;
+        }
         private static void BuildingOrderandStuff()
         {
             float[] era = ModernBoxPrefs.EraProgress;
@@ -429,7 +446,7 @@ bonfire_future_alliance.check_for_adaptation_tags = false;
 bonfire_future_alliance.max_houses = 1;
 bonfire_future_alliance.base_stats["health"] = 40000f;
 bonfire_future_alliance.burnable = false;
-bonfire_future_alliance.sprite_path = "buildings/bonfire_future";
+bonfire_future_alliance.sprite_path = ManuGrafikOderErsatz("buildings/bonfire_future", "buildings/bonfire_modern"); // Manu-Fix 011
 bonfire_future_alliance.has_sprites_main_disabled = false;
 bonfire_future_alliance.has_sprites_main = true;
 bonfire_future_alliance.has_sprites_ruin = true;
@@ -997,7 +1014,7 @@ bonfire_future_harden.check_for_adaptation_tags = false;
 bonfire_future_harden.max_houses = 1;
 bonfire_future_harden.base_stats["health"] = 40000f;
 bonfire_future_harden.burnable = false;
-bonfire_future_harden.sprite_path = "buildings/bonfire_future";
+bonfire_future_harden.sprite_path = ManuGrafikOderErsatz("buildings/bonfire_future", "buildings/bonfire_modern"); // Manu-Fix 011
 bonfire_future_harden.has_sprites_main_disabled = false;
 bonfire_future_harden.has_sprites_main = true;
 bonfire_future_harden.has_sprites_ruin = true;
@@ -1566,7 +1583,7 @@ bonfire_future_gaia.check_for_adaptation_tags = false;
 bonfire_future_gaia.max_houses = 1;
 bonfire_future_gaia.base_stats["health"] = 40000f;
 bonfire_future_gaia.burnable = false;
-bonfire_future_gaia.sprite_path = "buildings/bonfire_future";
+bonfire_future_gaia.sprite_path = ManuGrafikOderErsatz("buildings/bonfire_future", "buildings/bonfire_modern"); // Manu-Fix 011
 bonfire_future_gaia.has_sprites_main_disabled = false;
 bonfire_future_gaia.has_sprites_main = true;
 bonfire_future_gaia.has_sprites_ruin = true;
@@ -2135,7 +2152,7 @@ string[] hordecivs = new string[] { "orc", "necromancer", "civ_fox", "civ_wolf",
     bonfire_future_horde.max_houses = 1;
     bonfire_future_horde.base_stats["health"] = 40000f;
     bonfire_future_horde.burnable = false;
-    bonfire_future_horde.sprite_path = "buildings/bonfire_future";
+    bonfire_future_horde.sprite_path = ManuGrafikOderErsatz("buildings/bonfire_future", "buildings/bonfire_modern"); // Manu-Fix 011
     bonfire_future_horde.has_sprites_main_disabled = false;
     bonfire_future_horde.has_sprites_main = true;
     bonfire_future_horde.has_sprites_ruin = true;
@@ -2455,30 +2472,7 @@ greg.build_order_template_id = "build_order_horde_epochs";
     }
 
     private static bool CityHasModernEraBonfire(City city)
-    {
-        if (city == null || city.buildings == null)
-        {
-            return false;
-        }
-
-        foreach (Building building in city.buildings)
-        {
-            if (building == null || building.asset == null || building.asset.type != "type_bonfire")
-            {
-                continue;
-            }
-
-            string buildingId = building.asset.id;
-            if (!string.IsNullOrEmpty(buildingId)
-                && (buildingId.IndexOf("bonfire_modern_", StringComparison.OrdinalIgnoreCase) >= 0
-                || buildingId.IndexOf("bonfire_future_", StringComparison.OrdinalIgnoreCase) >= 0))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    { return city != null && Development.Stage(city) >= 6; }
 
     private static bool TryGetUpgradeBuildOrder(City city, Building building, out BuildOrder upgradeOrder)
     {
@@ -2578,59 +2572,8 @@ public static class EvolutionPatches
     }
     private static void AssignBuildOrderTemplate(Actor actor)
     {
-        if (actor == null || actor.asset == null) return;
-        var buildOrderMap = new Dictionary<string, string>
-        {
-            {"civ_dog", "build_order_alliance_epochs"},
-            {"civ_cat", "build_order_alliance_epochs"},
-            {"civ_chicken", "build_order_alliance_epochs"},
-            {"civ_sheep", "build_order_alliance_epochs"},
-            {"civ_acid_gentleman", "build_order_alliance_epochs"},
-            {"unicorn", "build_order_alliance_epochs"},
-            {"miniciv_unicorn", "build_order_alliance_epochs"},
-            {"civ_armadillo", "build_order_harden_epochs"},
-            {"civ_rhino", "build_order_harden_epochs"},
-            {"civ_crab", "build_order_harden_epochs"},
-            {"civ_penguin", "build_order_harden_epochs"},
-            {"civ_turtle", "build_order_harden_epochs"},
-            {"civ_crystal_golem", "build_order_harden_epochs"},
-            {"civ_goat", "build_order_harden_epochs"},
-            {"civ_candy_man", "build_order_harden_epochs"},
-            {"civ_liliar", "build_order_gaia_epochs"},
-            {"civ_rabbit", "build_order_gaia_epochs"},
-            {"civ_monkey", "build_order_gaia_epochs"},
-            {"civ_cow", "build_order_gaia_epochs"},
-            {"civ_buffalo", "build_order_gaia_epochs"},
-            {"civ_alpaca", "build_order_gaia_epochs"},
-            {"civ_capybara", "build_order_gaia_epochs"},
-            {"civ_frog", "build_order_gaia_epochs"},
-            {"fairy", "build_order_gaia_epochs"},
-            {"civ_lemon_man", "build_order_gaia_epochs"},
-            {"civ_garlic_man", "build_order_gaia_epochs"},
-            {"civ_fox", "build_order_horde_epochs"},
-            {"civ_wolf", "build_order_horde_epochs"},
-            {"civ_bear", "build_order_horde_epochs"},
-            {"civ_hyena", "build_order_horde_epochs"},
-            {"civ_rat", "build_order_horde_epochs"},
-            {"civ_scorpion", "build_order_horde_epochs"},
-            {"civ_crocodile", "build_order_horde_epochs"},
-            {"civ_snake", "build_order_horde_epochs"},
-            {"civ_piranha", "build_order_horde_epochs"}
-        };
-        string id = actor.asset.id;
-        try {
-            if (buildOrderMap.TryGetValue(id, out string buildOrderTemplate))
-            {
-                ActorAsset asset = AssetManager.actor_library.get(id);
-                if (asset != null)
-                {
-                    asset.build_order_template_id = buildOrderTemplate;
-                    actor.setAsset(asset);
-                }
-            }
-        } catch (Exception ex) {
-            ModernBoxLogger.Error($"AssignBuildOrderTemplate missing for {id}: {ex.Message}");
-        }
+        // Manu-Fix 018: auch nachtraeglich erzeugte Mod-Voelker erhalten die vollstaendige Bauentwicklung.
+        if (actor != null) Development.EnsureSpecies(actor.asset);
     }
 }
 [HarmonyPatch(typeof(BuildOrder), nameof(BuildOrder.getBuildingAsset))]
@@ -2680,10 +2623,11 @@ public static class Patch_CustomBuildOrder
             __result = AssetManager.buildings.get(buildingId);
             return false;
         }
-        if (order.StartsWith("order_"))
-        {
-            __result = null;
-        }
+        // Manu-Fix 012: Fuer normale order_*-Auftraege setzte ModernBox hier __result = null und liess das Spiel antworten.
+        // Hatte ein anderer Prefix (Building Styles bei fremdem Baustil) schon geantwortet und das Spiel uebersprungen, blieb
+        // null stehen -> NullReferenceException im Stadt-Bautakt, die Stadt baute nichts (gemessen im Worst-Case-Lauf
+        // 06.10.2026: Staedte mit fremdem Stil, z. B. civ_bear mit style_human, order_stockpile -> null). Laeuft das Spiel
+        // selbst, setzt es __result ohnehin -> die Zeile war nie noetig.
         return true;
     }
 }
@@ -2751,31 +2695,31 @@ public static class Patch_ArchitectureAsset_GetBuildingID
                 if (__instance.building.asset.id == "Docks_modern_alliance")
                 {
                     List<string> availableBoatTypes = new List<string>();
-                    if (__instance.countBoatTypes("cargo_alliance_boat") < 1)
+                    if (__instance.countBoatTypes("cargo_alliance_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("CargoShip_alliance");
-                    if (__instance.countBoatTypes("destroyer_a_alliance_boat") < 1)
+                    if (__instance.countBoatTypes("destroyer_a_alliance_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("aDestroyer_alliance");
-                    if (__instance.countBoatTypes("destroyer_b_alliance_boat") < 1)
+                    if (__instance.countBoatTypes("destroyer_b_alliance_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("bDestroyer_alliance");
-                    if (__instance.countBoatTypes("carrier_alliance_boat") < 1)
+                    if (__instance.countBoatTypes("carrier_alliance_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("CarrierVessel_alliance");
-                    if (__instance.countBoatTypes("submarine_alliance_boat") < 1)
+                    if (__instance.countBoatTypes("submarine_alliance_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("Submarine_alliance");
-                    if (__instance.countBoatTypes("fishing_alliance_boat") < 1)
+                    if (__instance.countBoatTypes("fishing_alliance_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("FishingBoat_alliance");
-                    if (__instance.countBoatTypes("abrawler_alliance_boat") < 1)
+                    if (__instance.countBoatTypes("abrawler_alliance_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("abrawler_alliance");
-                    if (__instance.countBoatTypes("bbrawler_alliance_boat") < 1)
+                    if (__instance.countBoatTypes("bbrawler_alliance_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("bbrawler_alliance");
-                    if (__instance.countBoatTypes("cbrawler_alliance_boat") < 1)
+                    if (__instance.countBoatTypes("cbrawler_alliance_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("cbrawler_alliance");
-                    if (__instance.countBoatTypes("dbrawler_alliance_boat") < 1)
+                    if (__instance.countBoatTypes("dbrawler_alliance_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("dbrawler_alliance");
-                    if (__instance.countBoatTypes("ebrawler_alliance_boat") < 1)
+                    if (__instance.countBoatTypes("ebrawler_alliance_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("ebrawler_alliance");
-                    if (__instance.countBoatTypes("fbrawler_alliance_boat") < 1)
+                    if (__instance.countBoatTypes("fbrawler_alliance_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("fbrawler_alliance");
-                    if (__instance.countBoatTypes("transporter_alliance_boat") < 1)
+                    if (__instance.countBoatTypes("transporter_alliance_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("Transporter_alliance");
                     if (availableBoatTypes.Count == 0)
                     {
@@ -2816,31 +2760,31 @@ public static class Patch_ArchitectureAsset_GetBuildingID
                  else if (__instance.building.asset.id == "Docks_rain_gaia")
                 {
                     List<string> availableBoatTypes = new List<string>();
-                    if (__instance.countBoatTypes("cargo_gaia_boat") < 1)
+                    if (__instance.countBoatTypes("cargo_gaia_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("CargoShip_gaia");
-                    if (__instance.countBoatTypes("destroyer_a_gaia_boat") < 1)
+                    if (__instance.countBoatTypes("destroyer_a_gaia_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("aDestroyer_gaia");
-                    if (__instance.countBoatTypes("destroyer_b_gaia_boat") < 1)
+                    if (__instance.countBoatTypes("destroyer_b_gaia_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("bDestroyer_gaia");
-                    if (__instance.countBoatTypes("carrier_gaia_boat") < 1)
+                    if (__instance.countBoatTypes("carrier_gaia_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("CarrierVessel_gaia");
-                    if (__instance.countBoatTypes("submarine_gaia_boat") < 1)
+                    if (__instance.countBoatTypes("submarine_gaia_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("Submarine_gaia");
-                    if (__instance.countBoatTypes("fishing_gaia_boat") < 1)
+                    if (__instance.countBoatTypes("fishing_gaia_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("FishingBoat_gaia");
-                    if (__instance.countBoatTypes("abrawler_gaia_boat") < 1)
+                    if (__instance.countBoatTypes("abrawler_gaia_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("abrawler_gaia");
-                    if (__instance.countBoatTypes("bbrawler_gaia_boat") < 1)
+                    if (__instance.countBoatTypes("bbrawler_gaia_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("bbrawler_gaia");
-                    if (__instance.countBoatTypes("cbrawler_gaia_boat") < 1)
+                    if (__instance.countBoatTypes("cbrawler_gaia_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("cbrawler_gaia");
-                    if (__instance.countBoatTypes("dbrawler_gaia_boat") < 1)
+                    if (__instance.countBoatTypes("dbrawler_gaia_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("dbrawler_gaia");
-                    if (__instance.countBoatTypes("ebrawler_gaia_boat") < 1)
+                    if (__instance.countBoatTypes("ebrawler_gaia_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("ebrawler_gaia");
-                    if (__instance.countBoatTypes("fbrawler_gaia_boat") < 1)
+                    if (__instance.countBoatTypes("fbrawler_gaia_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("fbrawler_gaia");
-                    if (__instance.countBoatTypes("transporter_gaia_boat") < 1)
+                    if (__instance.countBoatTypes("transporter_gaia_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("Transporter_gaia");
                     if (availableBoatTypes.Count == 0)
                     {
@@ -2881,31 +2825,31 @@ public static class Patch_ArchitectureAsset_GetBuildingID
                  else if (__instance.building.asset.id == "Docks_rain_horde")
                 {
                     List<string> availableBoatTypes = new List<string>();
-                    if (__instance.countBoatTypes("cargo_horde_boat") < 1)
+                    if (__instance.countBoatTypes("cargo_horde_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("CargoShip_horde");
-                    if (__instance.countBoatTypes("destroyer_a_horde_boat") < 1)
+                    if (__instance.countBoatTypes("destroyer_a_horde_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("aDestroyer_horde");
-                    if (__instance.countBoatTypes("destroyer_b_horde_boat") < 1)
+                    if (__instance.countBoatTypes("destroyer_b_horde_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("bDestroyer_horde");
-                    if (__instance.countBoatTypes("carrier_horde_boat") < 1)
+                    if (__instance.countBoatTypes("carrier_horde_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("CarrierVessel_horde");
-                    if (__instance.countBoatTypes("submarine_horde_boat") < 1)
+                    if (__instance.countBoatTypes("submarine_horde_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("Submarine_horde");
-                    if (__instance.countBoatTypes("fishing_horde_boat") < 1)
+                    if (__instance.countBoatTypes("fishing_horde_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("FishingBoat_horde");
-                    if (__instance.countBoatTypes("abrawler_horde_boat") < 1)
+                    if (__instance.countBoatTypes("abrawler_horde_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("abrawler_horde");
-                    if (__instance.countBoatTypes("bbrawler_horde_boat") < 1)
+                    if (__instance.countBoatTypes("bbrawler_horde_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("bbrawler_horde");
-                    if (__instance.countBoatTypes("cbrawler_horde_boat") < 1)
+                    if (__instance.countBoatTypes("cbrawler_horde_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("cbrawler_horde");
-                    if (__instance.countBoatTypes("dbrawler_horde_boat") < 1)
+                    if (__instance.countBoatTypes("dbrawler_horde_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("dbrawler_horde");
-                    if (__instance.countBoatTypes("ebrawler_horde_boat") < 1)
+                    if (__instance.countBoatTypes("ebrawler_horde_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("ebrawler_horde");
-                    if (__instance.countBoatTypes("fbrawler_horde_boat") < 1)
+                    if (__instance.countBoatTypes("fbrawler_horde_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("fbrawler_horde");
-                    if (__instance.countBoatTypes("transporter_horde_boat") < 1)
+                    if (__instance.countBoatTypes("transporter_horde_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("Transporter_horde");
                     if (availableBoatTypes.Count == 0)
                     {
@@ -2946,31 +2890,31 @@ public static class Patch_ArchitectureAsset_GetBuildingID
                  else if (__instance.building.asset.id == "Docks_rain_harden")
                 {
                     List<string> availableBoatTypes = new List<string>();
-                    if (__instance.countBoatTypes("cargo_harden_boat") < 1)
+                    if (__instance.countBoatTypes("cargo_harden_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("CargoShip_harden");
-                    if (__instance.countBoatTypes("destroyer_a_harden_boat") < 1)
+                    if (__instance.countBoatTypes("destroyer_a_harden_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("aDestroyer_harden");
-                    if (__instance.countBoatTypes("destroyer_b_harden_boat") < 1)
+                    if (__instance.countBoatTypes("destroyer_b_harden_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("bDestroyer_harden");
-                    if (__instance.countBoatTypes("carrier_harden_boat") < 1)
+                    if (__instance.countBoatTypes("carrier_harden_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("CarrierVessel_harden");
-                    if (__instance.countBoatTypes("submarine_harden_boat") < 1)
+                    if (__instance.countBoatTypes("submarine_harden_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("Submarine_harden");
-                    if (__instance.countBoatTypes("fishing_harden_boat") < 1)
+                    if (__instance.countBoatTypes("fishing_harden_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("FishingBoat_harden");
-                    if (__instance.countBoatTypes("abrawler_harden_boat") < 1)
+                    if (__instance.countBoatTypes("abrawler_harden_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("abrawler_harden");
-                    if (__instance.countBoatTypes("bbrawler_harden_boat") < 1)
+                    if (__instance.countBoatTypes("bbrawler_harden_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("bbrawler_harden");
-                    if (__instance.countBoatTypes("cbrawler_harden_boat") < 1)
+                    if (__instance.countBoatTypes("cbrawler_harden_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("cbrawler_harden");
-                    if (__instance.countBoatTypes("dbrawler_harden_boat") < 1)
+                    if (__instance.countBoatTypes("dbrawler_harden_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("dbrawler_harden");
-                    if (__instance.countBoatTypes("ebrawler_harden_boat") < 1)
+                    if (__instance.countBoatTypes("ebrawler_harden_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("ebrawler_harden");
-                    if (__instance.countBoatTypes("fbrawler_harden_boat") < 1)
+                    if (__instance.countBoatTypes("fbrawler_harden_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("fbrawler_harden");
-                        if (__instance.countBoatTypes("transporter_harden_boat") < 1)
+                        if (__instance.countBoatTypes("transporter_harden_boat") < Development.NavalLimit(pCity))
                         availableBoatTypes.Add("Transporter_harden");
                     if (availableBoatTypes.Count == 0)
                     {
@@ -3030,31 +2974,31 @@ public static class Patch_ArchitectureAsset_GetBuildingID
                     if (dockBuilding != null)
                     {
                         List<string> availableBoatTypes = new List<string>();
-                        if (dockBuilding.component_docks.countBoatTypes("cargo_alliance_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("cargo_alliance_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("CargoShip_alliance");
-                        if (dockBuilding.component_docks.countBoatTypes("destroyer_a_alliance_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("destroyer_a_alliance_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("aDestroyer_alliance");
-                        if (dockBuilding.component_docks.countBoatTypes("destroyer_b_alliance_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("destroyer_b_alliance_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("bDestroyer_alliance");
-                        if (dockBuilding.component_docks.countBoatTypes("carrier_alliance_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("carrier_alliance_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("CarrierVessel_alliance");
-                        if (dockBuilding.component_docks.countBoatTypes("submarine_alliance_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("submarine_alliance_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("Submarine_alliance");
-                        if (dockBuilding.component_docks.countBoatTypes("fishing_alliance_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("fishing_alliance_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("FishingBoat_alliance");
-                        if (dockBuilding.component_docks.countBoatTypes("abrawler_alliance_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("abrawler_alliance_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("abrawler_alliance");
-                        if (dockBuilding.component_docks.countBoatTypes("bbrawler_alliance_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("bbrawler_alliance_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("bbrawler_alliance");
-                        if (dockBuilding.component_docks.countBoatTypes("cbrawler_alliance_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("cbrawler_alliance_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("cbrawler_alliance");
-                        if (dockBuilding.component_docks.countBoatTypes("dbrawler_alliance_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("dbrawler_alliance_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("dbrawler_alliance");
-                        if (dockBuilding.component_docks.countBoatTypes("ebrawler_alliance_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("ebrawler_alliance_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("ebrawler_alliance");
-                        if (dockBuilding.component_docks.countBoatTypes("fbrawler_alliance_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("fbrawler_alliance_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("fbrawler_alliance");
-                        if (dockBuilding.component_docks.countBoatTypes("transporter_alliance_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("transporter_alliance_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("Transporter_alliance");
                         if (availableBoatTypes.Count == 0)
                         {
@@ -3101,31 +3045,31 @@ public static class Patch_ArchitectureAsset_GetBuildingID
                     if (dockBuilding != null)
                     {
                         List<string> availableBoatTypes = new List<string>();
-                        if (dockBuilding.component_docks.countBoatTypes("cargo_harden_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("cargo_harden_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("CargoShip_harden");
-                        if (dockBuilding.component_docks.countBoatTypes("destroyer_a_harden_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("destroyer_a_harden_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("aDestroyer_harden");
-                        if (dockBuilding.component_docks.countBoatTypes("destroyer_b_harden_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("destroyer_b_harden_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("bDestroyer_harden");
-                        if (dockBuilding.component_docks.countBoatTypes("carrier_harden_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("carrier_harden_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("CarrierVessel_harden");
-                        if (dockBuilding.component_docks.countBoatTypes("submarine_harden_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("submarine_harden_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("Submarine_harden");
-                        if (dockBuilding.component_docks.countBoatTypes("fishing_harden_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("fishing_harden_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("FishingBoat_harden");
-                        if (dockBuilding.component_docks.countBoatTypes("abrawler_harden_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("abrawler_harden_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("abrawler_harden");
-                        if (dockBuilding.component_docks.countBoatTypes("bbrawler_harden_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("bbrawler_harden_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("bbrawler_harden");
-                        if (dockBuilding.component_docks.countBoatTypes("cbrawler_harden_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("cbrawler_harden_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("cbrawler_harden");
-                        if (dockBuilding.component_docks.countBoatTypes("dbrawler_harden_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("dbrawler_harden_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("dbrawler_harden");
-                        if (dockBuilding.component_docks.countBoatTypes("ebrawler_harden_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("ebrawler_harden_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("ebrawler_harden");
-                        if (dockBuilding.component_docks.countBoatTypes("fbrawler_harden_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("fbrawler_harden_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("fbrawler_harden");
-                         if (dockBuilding.component_docks.countBoatTypes("transporter_harden_boat") < 1)
+                         if (dockBuilding.component_docks.countBoatTypes("transporter_harden_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("Transporter_harden");
                         if (availableBoatTypes.Count == 0)
                         {
@@ -3172,31 +3116,31 @@ public static class Patch_ArchitectureAsset_GetBuildingID
                     if (dockBuilding != null)
                     {
                         List<string> availableBoatTypes = new List<string>();
-                        if (dockBuilding.component_docks.countBoatTypes("cargo_horde_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("cargo_horde_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("CargoShip_horde");
-                        if (dockBuilding.component_docks.countBoatTypes("destroyer_a_horde_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("destroyer_a_horde_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("aDestroyer_horde");
-                        if (dockBuilding.component_docks.countBoatTypes("destroyer_b_horde_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("destroyer_b_horde_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("bDestroyer_horde");
-                        if (dockBuilding.component_docks.countBoatTypes("carrier_horde_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("carrier_horde_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("CarrierVessel_horde");
-                        if (dockBuilding.component_docks.countBoatTypes("submarine_horde_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("submarine_horde_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("Submarine_horde");
-                        if (dockBuilding.component_docks.countBoatTypes("fishing_horde_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("fishing_horde_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("FishingBoat_horde");
-                        if (dockBuilding.component_docks.countBoatTypes("abrawler_horde_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("abrawler_horde_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("abrawler_horde");
-                        if (dockBuilding.component_docks.countBoatTypes("bbrawler_horde_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("bbrawler_horde_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("bbrawler_horde");
-                        if (dockBuilding.component_docks.countBoatTypes("cbrawler_horde_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("cbrawler_horde_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("cbrawler_horde");
-                        if (dockBuilding.component_docks.countBoatTypes("dbrawler_horde_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("dbrawler_horde_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("dbrawler_horde");
-                        if (dockBuilding.component_docks.countBoatTypes("ebrawler_horde_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("ebrawler_horde_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("ebrawler_horde");
-                        if (dockBuilding.component_docks.countBoatTypes("fbrawler_horde_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("fbrawler_horde_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("fbrawler_horde");
-                            if (dockBuilding.component_docks.countBoatTypes("transporter_horde_boat") < 1)
+                            if (dockBuilding.component_docks.countBoatTypes("transporter_horde_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("Transporter_horde");
                         if (availableBoatTypes.Count == 0)
                         {
@@ -3243,31 +3187,31 @@ public static class Patch_ArchitectureAsset_GetBuildingID
                     if (dockBuilding != null)
                     {
                         List<string> availableBoatTypes = new List<string>();
-                        if (dockBuilding.component_docks.countBoatTypes("cargo_gaia_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("cargo_gaia_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("CargoShip_gaia");
-                        if (dockBuilding.component_docks.countBoatTypes("destroyer_a_gaia_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("destroyer_a_gaia_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("aDestroyer_gaia");
-                        if (dockBuilding.component_docks.countBoatTypes("destroyer_b_gaia_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("destroyer_b_gaia_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("bDestroyer_gaia");
-                        if (dockBuilding.component_docks.countBoatTypes("carrier_gaia_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("carrier_gaia_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("CarrierVessel_gaia");
-                        if (dockBuilding.component_docks.countBoatTypes("submarine_gaia_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("submarine_gaia_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("Submarine_gaia");
-                        if (dockBuilding.component_docks.countBoatTypes("fishing_gaia_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("fishing_gaia_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("FishingBoat_gaia");
-                        if (dockBuilding.component_docks.countBoatTypes("abrawler_gaia_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("abrawler_gaia_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("abrawler_gaia");
-                        if (dockBuilding.component_docks.countBoatTypes("bbrawler_gaia_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("bbrawler_gaia_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("bbrawler_gaia");
-                        if (dockBuilding.component_docks.countBoatTypes("cbrawler_gaia_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("cbrawler_gaia_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("cbrawler_gaia");
-                        if (dockBuilding.component_docks.countBoatTypes("dbrawler_gaia_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("dbrawler_gaia_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("dbrawler_gaia");
-                        if (dockBuilding.component_docks.countBoatTypes("ebrawler_gaia_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("ebrawler_gaia_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("ebrawler_gaia");
-                        if (dockBuilding.component_docks.countBoatTypes("fbrawler_gaia_boat") < 1)
+                        if (dockBuilding.component_docks.countBoatTypes("fbrawler_gaia_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("fbrawler_gaia");
-                         if (dockBuilding.component_docks.countBoatTypes("transporter_alliance_boat") < 1)
+                         if (dockBuilding.component_docks.countBoatTypes("transporter_alliance_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("Transporter_alliance");
                         if (availableBoatTypes.Count == 0)
                         {
