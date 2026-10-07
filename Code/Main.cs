@@ -88,6 +88,7 @@ namespace ModernBox{
             try
             {
                 int firstModernBoxActor = AssetManager.actor_library.list.Count; // Manu-Fix 017: ab hier eigene Einheiten
+                int firstModernBoxPower = AssetManager.powers.list.Count; // Manu-Fix 022: ab hier eigene Kraefte
 	            loadSettings();
 
                 FuckWorldboxia();
@@ -205,6 +206,7 @@ namespace ModernBox{
                 AvatarScaleFix.Apply();
                 NameLocaleFix.Apply(firstModernBoxActor);
                 TextFix.ApplyStatic();
+                SpawnPowerLinkFix.Apply(firstModernBoxPower); // Manu-Fix 022: Spawnknoepfe ohne ArgumentNullException
 
                 BombEffects.Init();
                 ModernBoxLogger.Log("[MX] Bomb effects initialized!");

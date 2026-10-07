@@ -25,6 +25,9 @@ namespace ModernBox
                 .SetTitle(Development.T("Forschung und Aufbau","Research and development")).SetDescription(Development.T("Forschung, Voraussetzungen, Staedte und Heere aller Reiche.","Research, requirements, cities and armies of every kingdom."))
                 .SetPosition(0,0).SetType(ButtonType.Click).SetTransform(Buttonz.getPowersTab("ModernBoxEras").transform)
                 .SetFunction(()=>{ Refresh(true);Windows.ShowWindow("manu_mb_forschung"); }).Build();
+            // Manu-Fix 018b (07.10.2026, Lauf mb_spawn_b_fix022): CreateNewWindow meldet den Fenstertitel nur fuer die aktive Sprache an;
+            // nach einem Sprachwechsel fehlte er ("missing text: manu_mb_forschung"). Jetzt wie die Knoepfe fuer de und en.
+            Locale("manu_mb_forschung","Forschung und Aufbau","Research and development");
             Locale("manu_mb_forschung_oeffnen","Forschung und Aufbau","Research and development");
             Locale("manu_mb_forschung_oeffnen_description","Forschung, Voraussetzungen, Staedte und Heere aller Reiche.","Research, requirements, cities and armies of every kingdom.");
             Locale("era_no_set","Automatische Forschung","Automatic research");

@@ -147,4 +147,55 @@ namespace ModernBox
             NeoModLoader.General.LM.Add("en", key, text);
         }
     }
+
+    // Manu-Fix 022 (07.10.2026, Lauf mb_spawn_a_original): Jedes Ueberfahren und Anklicken eines ModernBox-Spawnknopfs warf eine
+    // ArgumentNullException (LocalizedTextManager.getText <- ActorAsset.getLocalizedDescription, aus TooltipLibrary.showUnitGeneric
+    // und WorldTip.showToolbarText). ActorAsset.getDescriptionID() fragt die Gottkraft der Einheit ab (power_id ?? base_asset_id ?? id)
+    // und bekommt null: Vanilla setzt power_id nur einmal beim Verknuepfen der Bibliotheken (PowerLibrary: Kraft mit actor_asset_id),
+    // die Spawnkraefte dieser Mod entstehen erst danach. Hier dieselbe Verknuepfung fuer die eigenen Kraefte nachholen - nur fuer
+    // Einheiten, die noch gar keine Kraft finden - und die vorhandene Knopfbeschreibung ("Spawn the unit: ...") zusaetzlich unter dem
+    // Schluessel anmelden, den das Spiel abfragt (GodPower.getDescriptionID()). Es wird kein neuer Text erfunden. Immer auch als
+    // englischer Rueckfall: ButtonBuilder meldet seine Texte nur fuer die aktive Sprache an, nach einem Sprachwechsel zeigte der
+    // Tooltip sonst den rohen Schluessel (gemessen Lauf mb_spawn_b_fix022: "spawn_spaceork_description").
+    internal static class SpawnPowerLinkFix
+    {
+        internal static void Apply(int firstIndex)
+        {
+            List<GodPower> list = AssetManager.powers.list;
+            int linked = 0;
+            for (int i = firstIndex < 0 ? 0 : firstIndex; i < list.Count; i++)
+            {
+                GodPower power = list[i];
+                if (power == null) continue;
+                linked += Link(power, power.actor_asset_id);
+                if (power.actor_asset_ids == null) continue;
+                foreach (string actorId in power.actor_asset_ids) linked += Link(power, actorId);
+            }
+            ModernBoxLogger.Log($"[Fix022] Spawn powers linked to units: {linked}");
+        }
+
+        private static int Link(GodPower power, string actorId)
+        {
+            if (string.IsNullOrEmpty(actorId) || !AssetManager.actor_library.has(actorId)) return 0;
+            ActorAsset actor = AssetManager.actor_library.get(actorId);
+            if (actor == null || actor.power_id != null || actor.getGodPower() != null) return 0;
+            actor.power_id = power.id;
+            string key = power.getDescriptionID();
+            if (string.IsNullOrEmpty(key)) return 1;
+            string text;
+            if (LocalizedTextManager.stringExists(key))
+            {
+                text = LocalizedTextManager.getText(key);
+            }
+            else
+            {
+                string source = power.id + "_description";
+                if (!LocalizedTextManager.stringExists(source)) source = power.id + " Description";
+                text = LocalizedTextManager.stringExists(source) ? LocalizedTextManager.getText(source) : actor.getLocalizedName();
+                NeoModLoader.General.LM.AddToCurrentLocale(key, text);
+            }
+            NeoModLoader.General.LM.Add("en", key, text);
+            return 1;
+        }
+    }
 }

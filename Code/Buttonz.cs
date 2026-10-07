@@ -938,7 +938,8 @@ namespace ModernBox
 		  }
 
         private static void comingSoon() {
-            WorldTip.showNow("Coming soon. Maybe", true, "top", 3f);
+            // Manu-Fix 023: fester Hinweistext, kein Textschluessel (pTranslate false) - Begruendung in UnitTracker.SpawnVehicle.
+            WorldTip.showNow("Coming soon. Maybe", false, "top", 3f);
         }
         private static void openAboutWindow() {
 

@@ -11,10 +11,11 @@ public static class EventLibrary
             description = "One oven is overheating!",
             option1Title = "Shut it down",
             option1Description = "Production slows, but no damage.",
-            option1Function = () => WorldTip.showNow("Oven cooled. Slowed down a bit.", true, "top", 3f),
+            // Manu-Fix 023: fester Hinweistext, kein Textschluessel (pTranslate false) - Begruendung in UnitTracker.SpawnVehicle.
+            option1Function = () => WorldTip.showNow("Oven cooled. Slowed down a bit.", false, "top", 3f),
             option2Title = "Push it harder",
             option2Description = "Increases output, but risk damage.",
-            option2Function = () => WorldTip.showNow("Oven's going crazy fast!", true, "top", 3f)
+            option2Function = () => WorldTip.showNow("Oven's going crazy fast!", false, "top", 3f)
         },
         new RandomEvent
         {
@@ -25,11 +26,11 @@ public static class EventLibrary
             option1Function = () => {
                 var emp = EmployeeLibrary.CreateEmployee("friend_" + Random.Range(1000, 9999));
                 PizzaSimulator.instance.CreateEmployeeWindow(emp);
-                WorldTip.showNow("Friend hired!", true, "top", 3f);
+                WorldTip.showNow("Friend hired!", false, "top", 3f);
             },
             option2Title = "Maybe later",
             option2Description = "No change.",
-            option2Function = () => WorldTip.showNow("Friend told to wait.", true, "top", 3f)
+            option2Function = () => WorldTip.showNow("Friend told to wait.", false, "top", 3f)
         }
     };
 

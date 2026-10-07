@@ -101,7 +101,8 @@ public class PizzaSimulator : MonoBehaviour
         if (worldTipTimer >= worldTipInterval)
         {
             worldTipTimer = 0f;
-            WorldTip.showNow($"🍕 Total pizzas made: {Mathf.FloorToInt(pizzaCount)}", true, "top", 1.5f);
+            // Manu-Fix 023: fester Hinweistext, kein Textschluessel (pTranslate false) - Begruendung in UnitTracker.SpawnVehicle.
+            WorldTip.showNow($"🍕 Total pizzas made: {Mathf.FloorToInt(pizzaCount)}", false, "top", 1.5f);
         }
         
     }
