@@ -319,7 +319,10 @@ public static void toggleMGL()
         internal static bool Gesperrt(EquipmentAsset pAsset)
         {
             if (pAsset == null) return false;
-            return (!CustomItemsList.MirvsAllowed && CustomItemsList.Kys.Contains(pAsset.id))
+            // Manu-Fix 028: disabling the custom weapon pool must also cover vanilla's subtype fallback.
+            // Only the registered ModernBox crafting pool is blocked; existing equipment and god powers are untouched.
+            return (!CustomItemsList.GunsAllowed && CustomItemsList.WeaponEras.ContainsKey(pAsset.id))
+                || (!CustomItemsList.MirvsAllowed && CustomItemsList.Kys.Contains(pAsset.id))
                 || (!CustomItemsList.DrugsAllowed && CustomItemsList.Druggies.Contains(pAsset.id))
                 || (!CustomItemsList.MGLAllowed && CustomItemsList.MGLs.Contains(pAsset.id));
         }

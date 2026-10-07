@@ -24,8 +24,8 @@ public static class EventLibrary
             option1Title = "Hire them",
             option1Description = "Adds a new employee.",
             option1Function = () => {
-                var emp = EmployeeLibrary.CreateEmployee("friend_" + Random.Range(1000, 9999));
-                PizzaSimulator.instance.CreateEmployeeWindow(emp);
+                // Manu-Fix 025: hiring must add a producer, not just its window.
+                PizzaSimulator.instance.HireEmployee();
                 WorldTip.showNow("Friend hired!", false, "top", 3f);
             },
             option2Title = "Maybe later",

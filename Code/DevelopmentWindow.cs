@@ -12,7 +12,7 @@ namespace ModernBox
         private static RectTransform _content;
         internal static void Init()
         {
-            _window=Windows.CreateNewWindow("manu_mb_forschung",Development.T("Forschung und Aufbau","Research and development"));
+            _window=ModernBox.ModernBoxLocale.Window("manu_mb_forschung",Development.T("Forschung und Aufbau","Research and development"));
             var scroll=_window.transform.Find("Background/Scroll View");scroll.gameObject.SetActive(true);
             _content=scroll.Find("Viewport/Content").GetComponent<RectTransform>();
             var go=new GameObject("Forschungsstand",typeof(RectTransform),typeof(Text));go.transform.SetParent(_content,false);
@@ -36,7 +36,11 @@ namespace ModernBox
                 Locale(entry[0],"Goettereingriff: "+entry[1],"God override: "+entry[1]);
         }
         private static void Locale(string id,string de,string en)
-        { NeoModLoader.General.LM.Add("en",id,en);NeoModLoader.General.LM.Add("de",id,de);NeoModLoader.General.LM.AddToCurrentLocale(id,Development.T(de,en)); }
+        {
+            ModernBoxLocale.Bilingual(id,de,en);
+            // Manu-Fix 024: NCMS tooltips use " Description", GodPower uses "_description".
+            if (id.EndsWith("_description")) ModernBoxLocale.Bilingual(id.Substring(0,id.Length-12)+" Description",de,en);
+        }
         internal static void Refresh(bool force=false)
         {
             if(_text==null||(!force&&!_window.gameObject.activeInHierarchy))return;

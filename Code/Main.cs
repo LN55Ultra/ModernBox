@@ -394,13 +394,18 @@ namespace ModernBox{
         public static void resetToDefaults()
         {
             SavedSettings defaultSettings = new SavedSettings(); 
-            Windows.ShowWindow("DefaultSettingsWindow");
+            // Manu-Fix 029: the former target window did not exist. Restore the
+            // existing switches and their runtime callbacks before confirming.
             foreach (var option in defaultSettings.boolOptions)
             {
                 savedSettings.boolOptions[option.Key] = option.Value;
             }
 
+            ModernBox.Buttonz.ApplySavedSettings();
+            global::StatManager.Instance.SetEra(null); // Same neutral state as Automatic research.
             saveSettings();
+            DevelopmentWindow.Refresh(true);
+            WorldTip.showNow(Development.T("ModernBox-Einstellungen zurueckgesetzt.", "ModernBox settings restored to defaults."), false, "top", 3f);
         }
 
         public static void saveSettings(SavedSettings previousSettings = null)
@@ -444,11 +449,20 @@ namespace ModernBox{
                 return false;
             }
 
+            // Manu-Fix 028: preserve the old toggle's saved choice once, then use
+            // the canonical key everywhere. A stale alias must not win on later starts.
+            if (PlayerPrefs.HasKey("SpaceMarinesOption"))
+            {
+                PlayerPrefs.SetInt("SpaceMarineOption", PlayerPrefs.GetInt("SpaceMarinesOption"));
+                PlayerPrefs.DeleteKey("SpaceMarinesOption");
+                PlayerPrefs.Save();
+            }
+            var defaults = new SavedSettings().boolOptions;
             var keys = savedSettings.boolOptions.Keys.ToList();
 
             foreach (var key in keys)
             {
-                savedSettings.boolOptions[key] = PlayerPrefs.GetInt(key) == 1;
+                savedSettings.boolOptions[key] = PlayerPrefs.GetInt(key, defaults.TryGetValue(key, out bool fallback) && fallback ? 1 : 0) == 1;
             }
 
             return true;

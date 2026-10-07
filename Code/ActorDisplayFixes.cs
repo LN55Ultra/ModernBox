@@ -137,14 +137,22 @@ namespace ModernBox
                 string text = key.Replace('_', ' ').Trim();
                 if (text.Length > 0) text = char.ToUpper(text[0]) + text.Substring(1);
                 Register(key, text);
+                // Manu-Fix 024: the equipment editor asks for descriptions even
+                // when the mod supplies none. Keep that optional prose empty,
+                // rather than displaying a missing key or inventing item facts.
+                string description = list[i].getDescriptionID();
+                if (!string.IsNullOrEmpty(description) && !LocalizedTextManager.stringExists(description))
+                {
+                    ModernBoxLocale.Register(description, "");
+                    ModernBoxLocale.Register(description.Underscore(), "");
+                }
             }
         }
 
         internal static void Register(string key, string text)
         {
             if (string.IsNullOrEmpty(key) || LocalizedTextManager.stringExists(key)) return;
-            NeoModLoader.General.LM.AddToCurrentLocale(key, text);
-            NeoModLoader.General.LM.Add("en", key, text);
+            ModernBoxLocale.Register(key, text); // Manu-Fix 024: restore before the first text refresh.
         }
     }
 
@@ -192,9 +200,9 @@ namespace ModernBox
                 string source = power.id + "_description";
                 if (!LocalizedTextManager.stringExists(source)) source = power.id + " Description";
                 text = LocalizedTextManager.stringExists(source) ? LocalizedTextManager.getText(source) : actor.getLocalizedName();
-                NeoModLoader.General.LM.AddToCurrentLocale(key, text);
+                ModernBoxLocale.Register(key, text);
             }
-            NeoModLoader.General.LM.Add("en", key, text);
+            ModernBoxLocale.Register(key, text);
             return 1;
         }
     }

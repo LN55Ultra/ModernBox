@@ -124,7 +124,7 @@ namespace ModernBox {
       Ideology.name = "trait_group_Ideology";
       Ideology.color = "#5EFFFF";
       AssetManager.trait_groups.add(Ideology);
-      LM.AddToCurrentLocale("trait_group_Ideology", "Ideology");
+      ModernBox.ModernBoxLocale.Register("trait_group_Ideology", "Ideology");
 
 ////////ideology must be changed so it does not override existing
 ///////ideology must be changed so it does not override existing
@@ -154,9 +154,9 @@ namespace ModernBox {
       Dynastic.addOpposite("Peoplewoven");
       Dynastic.addOpposite("Chaosvolt");
       AssetManager.traits.add(Dynastic);
-      LM.AddToCurrentLocale("trait_Dynastic", "Dynastic Ideology");
-      LM.AddToCurrentLocale("trait_Dynastic_info", "LONG LIVE THE KING!!!!");
-      LM.AddToCurrentLocale("trait_Dynastic_info_2",
+      ModernBox.ModernBoxLocale.Register("trait_Dynastic", "Dynastic Ideology");
+      ModernBox.ModernBoxLocale.Register("trait_Dynastic_info", "LONG LIVE THE KING!!!!");
+      ModernBox.ModernBoxLocale.Register("trait_Dynastic_info_2",
                             "Nepo bebes and cake loving royals");
 
       ActorTrait Martial = new ActorTrait();
@@ -173,11 +173,11 @@ namespace ModernBox {
       Martial.addOpposite("Peoplewoven");
       Martial.addOpposite("Chaosvolt");
       AssetManager.traits.add(Martial);
-      LM.AddToCurrentLocale("trait_Martial", "Martial Ideology");
-      LM.AddToCurrentLocale(
+      ModernBox.ModernBoxLocale.Register("trait_Martial", "Martial Ideology");
+      ModernBox.ModernBoxLocale.Register(
           "trait_Martial_info",
           "All others will learn of our peaceful ways, BY FORCE!!!");
-      LM.AddToCurrentLocale("trait_Martial_info_2", "HOI4 enjoyers");
+      ModernBox.ModernBoxLocale.Register("trait_Martial_info_2", "HOI4 enjoyers");
 
       ActorTrait Peoplewoven = new ActorTrait();
       Peoplewoven.id = "Peoplewoven";
@@ -193,9 +193,9 @@ namespace ModernBox {
       Peoplewoven.addOpposite("Chaosvolt");
       Peoplewoven.addOpposite("Dynastic");
       AssetManager.traits.add(Peoplewoven);
-      LM.AddToCurrentLocale("trait_Peoplewoven", "Peoplewoven Ideology");
-      LM.AddToCurrentLocale("trait_Peoplewoven_info", "FOR THE PEASANTS!!");
-      LM.AddToCurrentLocale("trait_Peoplewoven_info_2",
+      ModernBox.ModernBoxLocale.Register("trait_Peoplewoven", "Peoplewoven Ideology");
+      ModernBox.ModernBoxLocale.Register("trait_Peoplewoven_info", "FOR THE PEASANTS!!");
+      ModernBox.ModernBoxLocale.Register("trait_Peoplewoven_info_2",
                             "HOI4 enjoyers as well");
 
       ActorTrait Mercantile = new ActorTrait();
@@ -212,11 +212,11 @@ namespace ModernBox {
       Mercantile.addOpposite("Peoplewoven");
       Mercantile.addOpposite("Martial");
       AssetManager.traits.add(Mercantile);
-      LM.AddToCurrentLocale("trait_Mercantile", "Mercantile Ideology");
-      LM.AddToCurrentLocale(
+      ModernBox.ModernBoxLocale.Register("trait_Mercantile", "Mercantile Ideology");
+      ModernBox.ModernBoxLocale.Register(
           "trait_Mercantile_info",
           "Not selling my own family for coins was the friends we made along the way");
-      LM.AddToCurrentLocale("trait_Mercantile_info_2",
+      ModernBox.ModernBoxLocale.Register("trait_Mercantile_info_2",
                             "bro, want some Maximcoin?");
 
       ActorTrait Chaosvolt = new ActorTrait();
@@ -233,10 +233,10 @@ namespace ModernBox {
       Chaosvolt.addOpposite("Peoplewoven");
       Chaosvolt.addOpposite("Dynastic");
       AssetManager.traits.add(Chaosvolt);
-      LM.AddToCurrentLocale("trait_Chaosvolt", "Chaosvolt Ideology");
-      LM.AddToCurrentLocale("trait_Chaosvolt_info",
+      ModernBox.ModernBoxLocale.Register("trait_Chaosvolt", "Chaosvolt Ideology");
+      ModernBox.ModernBoxLocale.Register("trait_Chaosvolt_info",
                             "REVOLT! REVOLT!! REVOLUTION!!!");
-      LM.AddToCurrentLocale("trait_Chaosvolt_info_2",
+      ModernBox.ModernBoxLocale.Register("trait_Chaosvolt_info_2",
                             "Mostly peaceful nuclear civil wars");
 
       ActorTrait Unitpotential = new ActorTrait();
@@ -255,10 +255,10 @@ namespace ModernBox {
       Unitpotential.action_special_effect =
           new WorldAction(UnitpotentialEffect);
       AssetManager.traits.add(Unitpotential);
-      LM.AddToCurrentLocale("trait_Unitpotential", "Vehicle/War Unit");
-      LM.AddToCurrentLocale("trait_Unitpotential_info",
+      ModernBox.ModernBoxLocale.Register("trait_Unitpotential", "Vehicle/War Unit");
+      ModernBox.ModernBoxLocale.Register("trait_Unitpotential_info",
                             "Enables lots of fun :3");
-      LM.AddToCurrentLocale("trait_Unitpotential_info_2",
+      ModernBox.ModernBoxLocale.Register("trait_Unitpotential_info_2",
                             "helicopter helicopter");
 
       ActorTrait NavalUnit = new ActorTrait();
@@ -271,9 +271,9 @@ namespace ModernBox {
       NavalUnit.can_be_given = false;
       NavalUnit.unlocked_with_achievement = false;
       AssetManager.traits.add(NavalUnit);
-      LM.AddToCurrentLocale("trait_NavalUnit", "Naval Unit");
-      LM.AddToCurrentLocale("trait_NavalUnit_info", "Enables lots of fun :3");
-      LM.AddToCurrentLocale("trait_NavalUnit_info_2",
+      ModernBox.ModernBoxLocale.Register("trait_NavalUnit", "Naval Unit");
+      ModernBox.ModernBoxLocale.Register("trait_NavalUnit_info", "Enables lots of fun :3");
+      ModernBox.ModernBoxLocale.Register("trait_NavalUnit_info_2",
                             "Big boats, big cannons, and lots of fun :D");
 
       ActorTrait Gay = new ActorTrait();
@@ -285,11 +285,11 @@ namespace ModernBox {
       Gay.group_id = "mind";
       Gay.unlocked_with_achievement = false;
       AssetManager.traits.add(Gay);
-      LM.AddToCurrentLocale("trait_Gay", "Gay");
-      LM.AddToCurrentLocale(
+      ModernBox.ModernBoxLocale.Register("trait_Gay", "Gay");
+      ModernBox.ModernBoxLocale.Register(
           "trait_Gay_info",
           "THis is only needed for the homo bomb, this person likes the same sex.");
-      LM.AddToCurrentLocale("trait_Gay_info_2", "literally dank btw");
+      ModernBox.ModernBoxLocale.Register("trait_Gay_info_2", "literally dank btw");
 
       LM.ApplyLocale(true);
     }
@@ -722,7 +722,7 @@ namespace ModernBox {
     public static void turnOffSpaceMarines() => allowSpaceMarines = false;
 
     public static void toggleSpaceMarines() {
-      Main.modifyBoolOption("SpaceMarinesOption",
+      Main.modifyBoolOption("SpaceMarineOption", // Manu-Fix 028: same saved key as the default and startup consumer.
                             PowerButtons.GetToggleValue("spacemarines"));
       if (PowerButtons.GetToggleValue("spacemarines")) {
         turnOnSpaceMarines();
@@ -923,6 +923,11 @@ namespace ModernBox {
                   continue;
 
               if (!allowTIEFighter && unit.Contains("TIEfighter"))
+                  continue;
+
+              // Manu-Fix 028: the visible Space Marine switch must filter both faction variants before conversion.
+              // Explicit player spawning remains a separate god power.
+              if (!allowSpaceMarines && (unit == "SpaceMarine" || unit == "spaceork"))
                   continue;
 
               filtered.Add(unit);

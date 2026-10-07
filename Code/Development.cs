@@ -71,10 +71,15 @@ namespace ModernBox
             foreach (var era in EraLibrary.All)
             {
                 int stage=era.key=="hyperfuture"?9:era.key=="modern"?6:era.key=="renaissance"?4:0;
+                // Manu-Fix 026: later eras reuse modern barracks, docks, towers and the mine.
+                // Reuse must not postpone their first availability from motorization to the future.
                 foreach (var ids in era.cityBuildings.Values)
-                    foreach (string id in ids) if (!BaselineBuildings.Keys.Any(b=>b.id==id)) BuildingStages[id]=stage;
+                    foreach (string id in ids)
+                        if (!BaselineBuildings.Keys.Any(b=>b.id==id) &&
+                            (!BuildingStages.TryGetValue(id,out int earliest) || stage<earliest)) BuildingStages[id]=stage;
                 foreach (var ids in era.bonfires.Values)
-                    foreach (string id in ids) BuildingStages[id]=stage;
+                    foreach (string id in ids)
+                        if (!BuildingStages.TryGetValue(id,out int earliest) || stage<earliest) BuildingStages[id]=stage;
             }
             // Bonfires follow earned eras through the same paid, research-gated upgrade path as buildings.
             // Removing their upgrade path would make the supplied future artwork unreachable.

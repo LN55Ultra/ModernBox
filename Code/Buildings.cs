@@ -2690,6 +2690,8 @@ public static class Patch_ArchitectureAsset_GetBuildingID
  [HarmonyPatch(typeof(Docks), "buildBoatFromHere")]
         public static class Patch_Docks_BuildBoatFromHere
         {
+            // Manu-Fix 034: all four factions use registered Docks_modern_* assets.
+            // The old rain IDs bypassed modern fleet limits/costs for Gaia, Horde and Harden.
             static bool Prefix(Docks __instance, City pCity, ref Actor __result)
             {
                 if (__instance.building.asset.id == "Docks_modern_alliance")
@@ -2757,7 +2759,7 @@ public static class Patch_ArchitectureAsset_GetBuildingID
                     __result = tNewBoat;
                     return false;
                 }
-                 else if (__instance.building.asset.id == "Docks_rain_gaia")
+                 else if (__instance.building.asset.id == "Docks_modern_gaia")
                 {
                     List<string> availableBoatTypes = new List<string>();
                     if (__instance.countBoatTypes("cargo_gaia_boat") < Development.NavalLimit(pCity))
@@ -2822,7 +2824,7 @@ public static class Patch_ArchitectureAsset_GetBuildingID
                     __result = tNewBoat;
                     return false;
                 }
-                 else if (__instance.building.asset.id == "Docks_rain_horde")
+                 else if (__instance.building.asset.id == "Docks_modern_horde")
                 {
                     List<string> availableBoatTypes = new List<string>();
                     if (__instance.countBoatTypes("cargo_horde_boat") < Development.NavalLimit(pCity))
@@ -2887,7 +2889,7 @@ public static class Patch_ArchitectureAsset_GetBuildingID
                     __result = tNewBoat;
                     return false;
                 }
-                 else if (__instance.building.asset.id == "Docks_rain_harden")
+                 else if (__instance.building.asset.id == "Docks_modern_harden")
                 {
                     List<string> availableBoatTypes = new List<string>();
                     if (__instance.countBoatTypes("cargo_harden_boat") < Development.NavalLimit(pCity))
@@ -3031,12 +3033,12 @@ public static class Patch_ArchitectureAsset_GetBuildingID
                         return false;
                     }
                 }
-                else if (__instance.id == "Docks_rain_harden")
+                else if (__instance.id == "Docks_modern_harden")
                 {
                     Building dockBuilding = null;
                     foreach (Building building in pCity.buildings)
                     {
-                        if (building.asset.id == "Docks_rain_harden")
+                        if (building.asset.id == "Docks_modern_harden")
                         {
                             dockBuilding = building;
                             break;
@@ -3102,12 +3104,12 @@ public static class Patch_ArchitectureAsset_GetBuildingID
                         return false;
                     }
                 }
-                else if (__instance.id == "Docks_rain_horde")
+                else if (__instance.id == "Docks_modern_horde")
                 {
                     Building dockBuilding = null;
                     foreach (Building building in pCity.buildings)
                     {
-                        if (building.asset.id == "Docks_rain_horde")
+                        if (building.asset.id == "Docks_modern_horde")
                         {
                             dockBuilding = building;
                             break;
@@ -3173,12 +3175,12 @@ public static class Patch_ArchitectureAsset_GetBuildingID
                         return false;
                     }
                 }
-                else if (__instance.id == "Docks_rain_gaia")
+                else if (__instance.id == "Docks_modern_gaia")
                 {
                     Building dockBuilding = null;
                     foreach (Building building in pCity.buildings)
                     {
-                        if (building.asset.id == "Docks_rain_gaia")
+                        if (building.asset.id == "Docks_modern_gaia")
                         {
                             dockBuilding = building;
                             break;
@@ -3211,8 +3213,8 @@ public static class Patch_ArchitectureAsset_GetBuildingID
                             availableBoatTypes.Add("ebrawler_gaia");
                         if (dockBuilding.component_docks.countBoatTypes("fbrawler_gaia_boat") < Development.NavalLimit(pCity))
                             availableBoatTypes.Add("fbrawler_gaia");
-                         if (dockBuilding.component_docks.countBoatTypes("transporter_alliance_boat") < Development.NavalLimit(pCity))
-                            availableBoatTypes.Add("Transporter_alliance");
+                         if (dockBuilding.component_docks.countBoatTypes("transporter_gaia_boat") < Development.NavalLimit(pCity))
+                            availableBoatTypes.Add("Transporter_gaia");
                         if (availableBoatTypes.Count == 0)
                         {
                             __result = null;
@@ -3237,7 +3239,7 @@ public static class Patch_ArchitectureAsset_GetBuildingID
                             "dbrawler_gaia",
                             "ebrawler_gaia",
                             "fbrawler_gaia",
-                            "Transporter_alliance"
+                            "Transporter_gaia"
                         };
                         string selectedBoatAssetId = boatAssetIds[Randy.randomInt(0, boatAssetIds.Length)];
                         __result = AssetManager.actor_library.get(selectedBoatAssetId);
