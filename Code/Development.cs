@@ -25,10 +25,13 @@ namespace ModernBox
             new Technology("education", "Bildungswesen", 50, 35, 100, 0, 18),
             new Technology("renaissance", "Renaissance und Feuerwaffen", 80, 60, 200, 35, 25),
             new Technology("industry", "Industrialisierung", 130, 100, 400, 70, 35),
-            new Technology("military", "Motorisierung und Panzer", 180, 150, 650, 120, 45),
-            new Technology("aviation", "Luftfahrt", 200, 190, 900, 180, 55),
-            new Technology("nuclear", "Kerntechnik", 400, 280, 1500, 300, 70),
-            new Technology("future", "Zukunftstechnologien", 650, 380, 2200, 450, 90)
+            // Manu-Fix 038: modern population thresholds lowered from 650, 900, 1500 and 2200. A natural 720-year world
+            // had 56 of 64 kingdoms blocked only by size; humans, elves and dwarves stayed below 700 inhabitants per
+            // kingdom and never left the industrial stage. Nuclear use keeps its 1,000/150 gate.
+            new Technology("military", "Motorisierung und Panzer", 180, 150, 400, 120, 45),
+            new Technology("aviation", "Luftfahrt", 200, 190, 600, 180, 55),
+            new Technology("nuclear", "Kerntechnik", 400, 280, 1000, 300, 70),
+            new Technology("future", "Zukunftstechnologien", 650, 380, 1500, 450, 90)
         };
         public const string StageKey = "manu_mb_research_stage";
         public const string PointsKey = "manu_mb_research_points";
@@ -48,6 +51,10 @@ namespace ModernBox
         private static readonly Dictionary<string,int> BuildingStages = new Dictionary<string,int>();
         private static readonly Dictionary<string,ConstructionCost> ReserveCache = new Dictionary<string,ConstructionCost>();
         private static readonly Dictionary<long,int> CultureStages = new Dictionary<long,int>();
+        // Manu-Fix 036: terminal buildings shared by several architectures (vanilla "bonfire" for humans, elves,
+        // orcs and dwarves) need one upgrade target per faction group instead of one global upgrade_to.
+        private static readonly Dictionary<string,Dictionary<string,string>> SharedUpgrades = new Dictionary<string,Dictionary<string,string>>();
+        private static readonly HashSet<string> SharedTerminals = new HashSet<string>();
         private static readonly FieldInfo[] BuildingFields = typeof(BuildingAsset).GetFields(BindingFlags.Public|BindingFlags.Instance);
         private static int _lastAssets = -1;
         private static int _constructionCapacity=1000;
@@ -209,7 +216,15 @@ namespace ModernBox
                     order=="order_bonfire"?"bonfire_rain_"+group:"mine_modern";
                 if (AssetManager.buildings.get(target)==null) continue;
                 // A species-specific terminal avoids changing another species' architecture or a shared mine's upgrade target.
-                terminal.can_be_upgraded=true; terminal.upgrade_to=target;
+                // Manu-Fix 036: the vanilla bonfire is one asset for several architectures. Overwriting upgrade_to per species
+                // let the last processed species decide every faction's renaissance bonfire (elves, dwarves and orcs got
+                // bonfire_rain_alliance). Keep the target per group; SharedUpgradeTarget applies it for the upgrading city and
+                // SharedRequirementChain lets every group's chain count as the existing building.
+                if(!SharedUpgrades.TryGetValue(terminal.id,out Dictionary<string,string> byGroup)) SharedUpgrades[terminal.id]=byGroup=new Dictionary<string,string>();
+                byGroup[group]=target;
+                if(byGroup.Values.Distinct().Count()>1) SharedTerminals.Add(terminal.id);
+                terminal.can_be_upgraded=true;
+                if(byGroup.Count==1) terminal.upgrade_to=target;
                 BuildingAsset upgraded=AssetManager.buildings.get(target);
                 upgraded.housing_slots=Math.Max(upgraded.housing_slots,terminal.housing_slots);
                 upgraded.max_houses=Math.Max(upgraded.max_houses,terminal.max_houses);
@@ -314,12 +329,14 @@ namespace ModernBox
         public static string Requirement(Kingdom kingdom,Technology technology)
         {
             var cities=Cities(kingdom);
-            int pop=cities.Sum(c=>c.getPopulationPeople()),army=cities.Sum(c=>c.countWarriors());
+            int pop=cities.Sum(c=>c.getPopulationPeople());
             int buildings=cities.Sum(c=>c.buildings.Count(b=>b.asset.city_building&&!b.isUnderConstruction()));
             int age=Math.Max(kingdom.getAge(),cities.Count==0?0:cities.Max(c=>c.getAge()));
             if (age<technology.Age) return T("Siedlungsalter ","Settlement age ")+age+"/"+technology.Age;
             if (pop<technology.Population) return T("Einwohner ","Population ")+pop+"/"+technology.Population;
-            if (army<technology.Army) return T("Heer ","Army ")+army+"/"+technology.Army;
+            // Manu-Fix 042: research no longer counts warriors. With large armies wanted for their own sake, the warrior
+            // threshold only held back kingdoms that had just lost a war. Army > 0 still marks the military stages that need
+            // a barracks; nuclear crafting and use keep their own 1,000 inhabitants / 150 warriors gate.
             if (buildings<technology.Buildings) return T("fertige Stadtgebaeude ","Completed city buildings ")+buildings+"/"+technology.Buildings;
             if (technology.Id!="architecture" && !cities.Any(c=>c.hasBuildingType("type_library"))) return T("Bibliothek fehlt","Library required");
             if (technology.Army>0 && !cities.Any(c=>c.hasBuildingType("type_barracks"))) return T("Kaserne fehlt","Barracks required");
@@ -355,7 +372,7 @@ namespace ModernBox
                 var tech=Technologies[stage];
                 if (Requirement(kingdom,tech)!=null) continue;
                 int paidYears=Math.Min(5,year-last);
-                City sponsor=cities.Where(c=>HasSurplus(c,"gold",2*paidYears) && c.hasBuildingType("type_hall")).OrderByDescending(c=>c.amount_gold).FirstOrDefault();
+                City sponsor=cities.Where(c=>HasSurplus(c,"gold",2*paidYears,true) && c.hasBuildingType("type_hall")).OrderByDescending(c=>c.amount_gold).FirstOrDefault();
                 if (sponsor==null) continue;
                 // A paid research year cannot consume the city's construction reserve or be duplicated after loading.
                 sponsor.takeResource("gold",2*paidYears);
@@ -418,33 +435,48 @@ namespace ModernBox
             city.data.get("manu_mb_vehicle_year",out int last,int.MinValue);
             if (Date.getCurrentYear()<=last) return false;
             var cost=VehicleCost(city);
-            return HasSurplus(city,"wood",cost.wood)&&HasSurplus(city,"common_metals",cost.common_metals)&&HasSurplus(city,"gold",cost.gold);
+            // A resource the vehicle does not cost must not block it because the city sits at its reserve (metals hover at 5).
+            return (cost.wood<=0||HasSurplus(city,"wood",cost.wood,true))&&(cost.common_metals<=0||HasSurplus(city,"common_metals",cost.common_metals,true))
+                &&(cost.gold<=0||HasSurplus(city,"gold",cost.gold,true));
         }
-        private static ConstructionCost VehicleCost(City city) => Stage(city)>=6?new ConstructionCost(6,0,12,12):new ConstructionCost(8,0,0,5);
+        // Manu-Fix 037: modern vehicles no longer require 12 common metals above the reserve. Measured over 20 years in a
+        // 58-city world, all cities together received about one metal per city and year and crafting consumed it at once;
+        // no city could ever hold 17 metals, so not a single modern vehicle was paid. Gold and wood flow far better.
+        private static ConstructionCost VehicleCost(City city) => Stage(city)>=6?new ConstructionCost(6,0,0,12):new ConstructionCost(8,0,0,5);
         public static void PayVehicle(City city)
         {
             var cost=VehicleCost(city); city.takeResource("wood",cost.wood);city.takeResource("common_metals",cost.common_metals);city.takeResource("gold",cost.gold);
             city.data.set("manu_mb_vehicle_year",Date.getCurrentYear());
         }
-        public static bool HasSurplus(City city,string resource,int cost)
-        { return city!=null && city.getResourcesAmount(resource)-Reserve(city,resource)>=cost; }
-        public static int Reserve(City city,string resource)
+        public static bool HasSurplus(City city,string resource,int cost,bool ownProgress=false)
+        { return city!=null && city.getResourcesAmount(resource)-Reserve(city,resource,ownProgress)>=cost; }
+        // Manu-Fix 040: ownProgress = ModernBox's own research payment and vehicle production. They skip the next era
+        // bonfire (300/700/1000 gold), which neither depends on; other mods' spending keeps the full reserve so the
+        // bonfire savings stay protected. Before, stage-6+ research and every vehicle waited for 700 saved gold.
+        public static int Reserve(City city,string resource,bool ownProgress=false)
         {
             if (city==null || _calculatingReserve || (resource!="wood"&&resource!="stone"&&resource!="gold"&&resource!="common_metals")) return 0;
-            string key=city.id+"/"+city.buildings.Count+"/"+Stage(city);
+            string key=city.id+"/"+city.buildings.Count+"/"+Stage(city)+(ownProgress?"/own":"");
             if (!ReserveCache.TryGetValue(key,out ConstructionCost reserve))
             {
                 reserve=new ConstructionCost(20,20,5,100);
                 _calculatingReserve=true;
                 try
                 {
-                    var template=AssetManager.city_build_orders.get(city.getActorAsset().build_order_template_id);
-                    foreach (BuildOrder order in template.list)
+                    // Manu-Fix 043: City.getActorAsset() is the species of the current leader. When that species has no build
+                    // orders or architecture (measured: an infected host from a parasite mod leading a city after 740 years),
+                    // the template lookup returned null and every call threw a NullReferenceException, 3,719 times in 40 years
+                    // through a wall mod's cost check. Such a city keeps the base reserve, and an order whose building is
+                    // missing from the architecture is skipped before the vanilla check reads it.
+                    ActorAsset species=city.getActorAsset();
+                    var template=species?.architecture_asset==null||string.IsNullOrEmpty(species.build_order_template_id)?null:AssetManager.city_build_orders.get(species.build_order_template_id);
+                    if (template?.list!=null) foreach (BuildOrder order in template.list)
                     {
-                        if (!CityBehBuild.canUseBuildAsset(order,city)) continue;
                         BuildingAsset building=order.getBuildingAsset(city);
+                        if (building==null || !CityBehBuild.canUseBuildAsset(order,city)) continue;
                         if (order.upgrade) building=AssetManager.buildings.get(building.upgrade_to);
                         if (building?.cost==null || !AllowsBuilding(city,building)) continue;
+                        if (ownProgress && building.type=="type_bonfire") continue;
                         reserve.wood=Math.Max(reserve.wood,building.cost.wood);reserve.stone=Math.Max(reserve.stone,building.cost.stone);
                         reserve.common_metals=Math.Max(reserve.common_metals,building.cost.common_metals);reserve.gold=Math.Max(reserve.gold,building.cost.gold);
                     }
@@ -525,6 +557,55 @@ namespace ModernBox
                 BuildingAsset asset=pBuildAsset.getBuildingAsset(pCity);
                 if(pBuildAsset.upgrade) asset=AssetManager.buildings.get(asset.upgrade_to);
                 if(asset==null || !AllowsBuilding(pCity,asset)) __result=false;
+            }
+        }
+        [HarmonyPatch(typeof(CityBehBuild),nameof(CityBehBuild.upgradeBuilding))]
+        private static class SharedUpgradeTarget
+        {
+            // Manu-Fix 036: runs before ModernBox's own upgrade prefixes, which read pBuilding.asset.upgrade_to.
+            [HarmonyPriority(Priority.First)]
+            static void Prefix(Building pBuilding,City pCity)
+            {
+                if(!Ready||pBuilding?.asset==null||pCity==null)return;
+                if(!SharedUpgrades.TryGetValue(pBuilding.asset.id,out Dictionary<string,string> byGroup)||byGroup.Count<2)return;
+                if(byGroup.TryGetValue(Group(pCity.getActorAsset()),out string target)&&AssetManager.buildings.get(target)!=null)
+                    pBuilding.asset.upgrade_to=target;
+            }
+        }
+        [HarmonyPatch(typeof(CityBehBuild),"haveRequiredBuildings")]
+        private static class SharedRequirementChain
+        {
+            // Manu-Fix 036: vanilla accepts a required building when the city has it or one of its upgrades and follows
+            // upgrade_to for that. On the shared vanilla bonfire this is the chain of the city that upgraded last, so cities
+            // with another faction's bonfire (and conquered cities) failed every bonfire requirement: no new houses, hall,
+            // windmill, docks, mine, tower or temple. A shared terminal is satisfied by any faction's chain.
+            static void Postfix(BuildOrder pOrder,City pCity,ref bool __result)
+            {
+                if(__result||!Ready||pCity==null||pOrder?.requirements_orders==null||SharedTerminals.Count==0)return;
+                bool shared=false;
+                foreach(string required in pOrder.requirements_orders)
+                    if(SharedTerminals.Contains(pOrder.getBuildingAsset(pCity,required)?.id??"")){shared=true;break;}
+                if(!shared)return;
+                foreach(string required in pOrder.requirements_orders)
+                {
+                    BuildingAsset building=pOrder.getBuildingAsset(pCity,required);
+                    if(building!=null&&building.id==building.upgrade_to)continue;
+                    if(!HasBuildingOrUpgrade(pCity,building,0))return;
+                }
+                __result=true;
+            }
+            private static bool HasBuildingOrUpgrade(City city,BuildingAsset building,int depth)
+            {
+                if(building==null||depth>16)return false;
+                if(city.countBuildingsOfID(building.id)>0)return true;
+                if(SharedTerminals.Contains(building.id))
+                {
+                    foreach(string target in SharedUpgrades[building.id].Values)
+                        if(HasBuildingOrUpgrade(city,AssetManager.buildings.get(target),depth+1))return true;
+                    return false;
+                }
+                return building.can_be_upgraded&&!string.IsNullOrEmpty(building.upgrade_to)&&building.upgrade_to!=building.id
+                    &&HasBuildingOrUpgrade(city,AssetManager.buildings.get(building.upgrade_to),depth+1);
             }
         }
         [HarmonyPatch(typeof(Building),"canBeUpgraded")]

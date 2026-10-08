@@ -2528,6 +2528,14 @@ public static class Patch_CityBehBuild_BlockPrematureModernTowerDockUpgrades
             return true;
         }
 
+        // Manu-Fix 039: Patch_CityBehBuild_upgradeBuilding (same priority, registered first) already performs the
+        // upgrade and reports true. This check then saw the new building and its next stage and overwrote the result
+        // with false; the upgrade itself had happened. Stage and build-order gates run before (BuildGate, UpgradeGate).
+        if (__result)
+        {
+            return true;
+        }
+
         if (TryGetUpgradeBuildOrder(pCity, pBuilding, out BuildOrder upgradeOrder))
         {
             if (!ai.behaviours.CityBehBuild.canUseBuildAsset(upgradeOrder, pCity))

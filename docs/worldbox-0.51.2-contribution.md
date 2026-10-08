@@ -4,6 +4,36 @@ Contribution by Manu (LN55Ultra), prepared with AI-assisted development. Based o
 
 Validated locally on Windows with WorldBox 0.51.2 (build 719) and NeoModLoader 1.2.0.1. Offered for maintainer review; not an official ModernBox release.
 
+## Follow-up: research and economy in long games (2026-10-08)
+
+One commit on top of `e625227`. The question this time was whether the research system works in a long, normal game. A world with nine peoples grew on its own to year 700 (about 26,000 units); it was saved, loaded again and measured kingdom by kingdom and city by city. Most kingdoms never reached the modern stages and almost no modern vehicle was built. The causes were in the research code of this contribution. A few smaller issues came up along the way, two of them in the original vehicle code (041, 044).
+
+### Changes and reasons
+
+| Fix | Trigger / cause | Result and main source |
+|---|---|---|
+| 036 | Humans, elves, orcs, dwarves and every species without a bonfire of its own share the vanilla `bonfire`. The build-order setup wrote the Renaissance upgrade target into that shared asset once per species, so the species processed last decided it for everyone: elves, dwarves and orcs built `bonfire_rain_alliance`. | The target is kept per faction group and applied when a city of that group upgrades. Vanilla also follows `upgrade_to` when it checks a required building (`haveRequiredBuildings`), and nearly every build order requires the bonfire, so a bonfire from any faction chain now counts as the existing bonfire. Otherwise cities with another faction's bonfire could no longer start houses, halls, windmills, docks, mines, towers or temples. `Development.cs`. |
+| 037 | From motorization on, a vehicle cost 12 common metal above the reserve. Over 20 years the 58 cities received about 57 metal per year together, crafting used it right away and no city held more than 9. A modern vehicle could never be paid. | Modern vehicles cost 6 wood and 12 gold. Renaissance vehicles are unchanged. `Development.cs`. |
+| 038 | Motorization required 650 inhabitants in one kingdom, aviation 900, nuclear technology 1,500 and future technology 2,200. In the 700-year world 56 of 64 kingdoms were held back only by size; humans, elves and dwarves never got past industrialization. | 400, 600, 1,000 and 1,500 inhabitants (warriors are no longer counted, see fix 042). Nuclear crafting and use still need 1,000 inhabitants and 150 warriors. `Development.cs`. |
+| 039 | Two prefixes run on `CityBehBuild.upgradeBuilding`. The research upgrade prefix upgrades and returns true; the tower/dock guard then looked at the already upgraded building and its next stage and set the result to false. Vanilla ignores that return value, so there was no visible effect. | The guard keeps a successful result. The stage checks still run before the upgrade. `Buildings.cs`. |
+| 040 | The construction reserve includes the next era bonfire (300/700/1,000 gold). Research payments and vehicles waited for it although neither depends on the bonfire: from stage 6 a city had to save 700 gold before it could pay 2 gold of research. | Research payments and vehicles leave the bonfire out of the reserve. WallBox and the Classical Economics helper still see the full reserve, so bonfire savings stay protected. Vehicles only check the resources they actually cost. `Development.cs`. |
+| 041 | The bomber/vehicle ammo postfix runs on every AI update of every unit. For ordinary units it searched the decision list by string and a trait by name each time; with about 21,000 units that cost 4 % of the simulation. | The air-vehicle profile is cached per actor asset (thread safe, AI updates can run in parallel). Land vehicles check the profile table before the trait. `Vehicles.cs`. |
+| 042 | Every research stage from the Renaissance on also required a number of warriors (35 to 300). Armies rise and fall with every war, and in the long game a kingdom was now and then held back by its warrior count alone (1 of 22 kingdoms at year 100, 1 of 47 at year 300). | Research no longer counts warriors. The military stages still need a barracks, and nuclear crafting and use keep their own 1,000 inhabitants / 150 warriors gate. `Development.cs`. |
+| 043 | The construction reserve reads the build orders of the species that leads the city (`City.getActorAsset()` returns the leader's species). In a long game with other mods a city ended up led by a unit without build orders, an infected host from a parasite mod. The lookup returned null and every call threw; a wall mod that checks the reserve before each wall segment logged 3,719 exceptions in 40 years. | Such a city keeps the base reserve, and a build order whose building is missing from the architecture is skipped before the vanilla check reads it. `Development.cs`. |
+| 044 | `City.loadLeader()` calls `setLeader(null)` when the saved leader id no longer belongs to a living unit, and vanilla simply ignores null there. The `Unitpotential` prefix on `setLeader` (original vehicle code) read `pActor.hasTrait` first. The exception ended `SaveManager.loadLeaders`, the loader stopped and the old world stayed on screen: a year-740 save with one such city could not be loaded at all. | The prefix leaves null to vanilla. `Vehicles.cs`. |
+
+### Verification of this follow-up
+
+- The same saved 700-year world was loaded with and without the changes and run for 20 game years at high speed, with counters on the real payment, transformation and upgrade paths: modern vehicles paid 0 → 96 (stage 6: 49, stage 7: 37, stage 8: 10); carts turned into modern units 0 → 98 (Humvees, howitzers, tanks, bombers, helicopters, a jet, a missile system); gold paid for research 48 → 404; peoples with a modern kingdom 6 → 8 of 11 (humans and dwarves are new). No runtime exceptions in those 20 years.
+- Each finished technology logs population and army. No kingdom finished a modern technology below the new limits.
+- Bonfire: the real `upgradeBuilding` for one city per faction gives human `bonfire_rain_alliance`, elf `bonfire_rain_gaia`, dwarf `bonfire_rain_harden` and orc `bonfire_rain_horde`, each reported as successful. With only the new prefix removed, the dwarf city got the orc bonfire again; restoring the prefix fixed it.
+- Bonfire requirement: The real `CityBehBuild.haveRequiredBuildings` for `order_house_0`, checked in 12 cities with an upgraded bonfire against all four faction targets on the shared bonfire: without the new postfix 36 of 48 cases were wrongly blocked (only the city's own chain passed), with it all 48 pass. Cities with the plain bonfire pass in all 48 cases either way; 12 cities without any bonfire and 8 temple cases without a statue stay blocked. All four targets have the same stage and cost, so the other readers of `upgrade_to` are not affected.
+- Bomber cache: old and new lookup agree for all 21,818 units of that world (3 air vehicles, 8 land vehicles). Removing the postfix completely gained 4.0 % throughput before the change and 2.0 % after it (within measurement noise).
+- Loading and reserve: the year-740 save that stayed on the old world now loads (91 cities, no exception). In the same session the reserve was called for six cities with an infected host set as leader for the moment of the call: base reserve, no exception. With their own leaders the six cities give exactly the values the old code gave for the same save.
+- Long game: a fresh world with nine peoples (16 founders each) ran from year 0 to 353 at high speed with these changes and my usual mod list. No runtime exceptions; the only errors in the log are vanilla `Dynamic sprite not found: tool_flag_N` messages. 94 technologies were finished, none below its population limit. The first kingdom reached motorization in year 250; by year 350 there were 19 modern kingdoms of seven peoples, up to aviation, with 17 modern vehicles on the map. The world saved at year 350 loaded back with the same 18,569 units (same ids and traits), 107 cities and 76 kingdoms.
+
+Not changed, only noted: the Renaissance guns (Musket, Crossbow, Flintlock) cost 2 adamantine, which is so rare that Renaissance kingdoms almost never craft them. A conquering kingdom or a new rebel state inherits the highest research stage of its cities, so small successor states can sit at a late stage; the nuclear size gate still applies to them. The territory range postfix lets cities claim far; with about 21,000 units it had no measurable cost.
+
 ## Consolidated follow-up audit (2026-10-07)
 
 Further bugs were found while reviewing the remaining paths and exercising them in the real game. This follow-up is one consolidated commit on top of `7fc5ba7`; it keeps the earlier research, graphics and compatibility work. It does not claim to reproduce or resolve the other player's still-unidentified crash.
@@ -85,19 +115,19 @@ The five new effect sheets were generated with Codex ImageGen on 2026-10-06, the
 
 ## Research thresholds and save behavior
 
-| Technology | Research points | Settlement age | Population | Warriors | Completed buildings |
+| Technology | Research points | Settlement age | Population | Barracks | Completed buildings |
 |---|---:|---:|---:|---:|---:|
-| Architecture | 20 | 10 | 30 | 0 | 8 |
-| Metallurgy | 35 | 20 | 60 | 0 | 12 |
-| Education | 50 | 35 | 100 | 0 | 18 |
-| Renaissance / firearms | 80 | 60 | 200 | 35 | 25 |
-| Industrialization | 130 | 100 | 400 | 70 | 35 |
-| Motorization / tanks | 180 | 150 | 650 | 120 | 45 |
-| Aviation | 200 | 190 | 900 | 180 | 55 |
-| Nuclear technology | 400 | 280 | 1,500 | 300 | 70 |
-| Future technology | 650 | 380 | 2,200 | 450 | 90 |
+| Architecture | 20 | 10 | 30 | no | 8 |
+| Metallurgy | 35 | 20 | 60 | no | 12 |
+| Education | 50 | 35 | 100 | no | 18 |
+| Renaissance / firearms | 80 | 60 | 200 | yes | 25 |
+| Industrialization | 130 | 100 | 400 | yes | 35 |
+| Motorization / tanks | 180 | 150 | 400 | yes | 45 |
+| Aviation | 200 | 190 | 600 | yes | 55 |
+| Nuclear technology | 400 | 280 | 1,000 | yes | 70 |
+| Future technology | 650 | 380 | 1,500 | yes | 90 |
 
-All requirements are cumulative. After Architecture, a library is required; military stages also need a barracks. The sponsor needs a hall and enough gold above the next construction reserve. Research is stored in kingdom and city custom data. A settlement's retained knowledge survives a new ruler or a successor state without adding duplicate progress.
+The modern population limits were lowered on 2026-10-08 (before: 650, 900, 1,500 and 2,200), and research no longer counts warriors; the military stages need a barracks (column above). See the follow-up above. All requirements are cumulative. After Architecture, a library is required; military stages also need a barracks. The sponsor needs a hall and enough gold above the next construction reserve; that reserve does not include the next era bonfire. Research is stored in kingdom and city custom data. A settlement's retained knowledge survives a new ruler or a successor state without adding duplicate progress.
 
 Existing M5 saves that do not contain these new research fields begin the research path at its foundations. Existing buildings and ordinary equipment remain in the save; the new crafting, upgrading and nuclear-use rules apply. The labelled god-era controls provide an explicit override. Automatic research clears that override and enables all four eras. Separate weapon switches remain available.
 

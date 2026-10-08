@@ -8119,6 +8119,13 @@ public static readonly string[] swim_0_5 = Toolbox.a<string>("swim_0", "swim_1",
 
 
 
+// Manu-Fix 041: Patch_Actor_BomberHumanRuntime runs for every actor on every AI update. For ordinary units it scanned
+// the asset's whole decision list by string (List.Contains) and checked a trait by name each time. Whether an asset is
+// an air vehicle never changes while playing, so the answer is kept per ActorAsset (concurrent: AI updates can run in
+// parallel batches). Measured with 21,000 units: removing the patch raised throughput by 4 %; the lookup now costs ~0.
+private static readonly System.Collections.Concurrent.ConcurrentDictionary<ActorAsset, AirVehicleProfile> AirProfileByAsset =
+	new System.Collections.Concurrent.ConcurrentDictionary<ActorAsset, AirVehicleProfile>();
+
 private static bool TryGetAirVehicleProfile(Actor actor, out AirVehicleProfile profile)
 {
 	profile = null;
@@ -8127,19 +8134,18 @@ private static bool TryGetAirVehicleProfile(Actor actor, out AirVehicleProfile p
 		return false;
 	}
 
-	if (AirVehicleProfiles.TryGetValue(actor.asset.id, out profile))
+	ActorAsset asset = actor.asset;
+	if (!AirProfileByAsset.TryGetValue(asset, out profile))
 	{
-		return true;
+		if (!AirVehicleProfiles.TryGetValue(asset.id, out profile))
+		{
+			List<string> decisionIds = asset.decision_ids;
+			profile = decisionIds != null && decisionIds.Contains("bomber_force_reload_rtb") ? DefaultAirVehicleProfile : null;
+		}
+		AirProfileByAsset[asset] = profile;
 	}
 
-	List<string> decisionIds = actor.asset.decision_ids;
-	if (decisionIds != null && decisionIds.Contains("bomber_force_reload_rtb"))
-	{
-		profile = DefaultAirVehicleProfile;
-		return true;
-	}
-
-	return false;
+	return profile != null;
 }
 
 private static AirVehicleProfile GetAirVehicleProfileOrDefault(Actor actor)
@@ -8175,17 +8181,20 @@ private static bool IsVehicleActor(Actor actor)
 private static bool TryGetLandVehicleAmmoProfile(Actor actor, out LandVehicleAmmoProfile profile)
 {
 	profile = null;
-	if (actor == null || actor.asset == null || !actor.hasTrait("Unitpotential"))
+	// Manu-Fix 041: the profile table is checked first; ordinary units leave before the trait lookup by name.
+	if (actor == null || actor.asset == null || !LandVehicleAmmoProfiles.TryGetValue(actor.asset.id, out profile))
 	{
+		profile = null;
 		return false;
 	}
 
-	if (IsAirVehicleActor(actor))
+	if (!actor.hasTrait("Unitpotential") || IsAirVehicleActor(actor))
 	{
+		profile = null;
 		return false;
 	}
 
-	return LandVehicleAmmoProfiles.TryGetValue(actor.asset.id, out profile);
+	return true;
 }
 
 private static bool IsLandVehicleAmmoActor(Actor actor)
@@ -10140,9 +10149,13 @@ public static class Patch_Kingdom_Exclude_Unitpotential_King
 [HarmonyPatch(typeof(City), "setLeader")]
 public static class Patch_City_Exclude_Unitpotential_Leader
 {
+    // Manu-Fix 044: City.loadLeader() passes null when the saved leader id no longer belongs to a unit, and vanilla
+    // setLeader simply ignores null. Reading pActor.hasTrait() first threw a NullReferenceException inside
+    // SaveManager.loadLeaders, the loader stopped there and the old world stayed on screen (measured with a year-740
+    // save whose city still pointed at a leader that had died before saving).
     static bool Prefix(City __instance, Actor pActor, bool pNew)
     {
-        if (pActor.hasTrait("Unitpotential"))
+        if (pActor != null && pActor.hasTrait("Unitpotential"))
             return false;
         return true;
     }
